@@ -95,18 +95,43 @@ function Board(){
 		var y = row * _yStep;
 		_ctx.beginPath();
 		_ctx.clearRect(x, y, _xStep, _yStep);
-		console.log("Clearing rect", x, y, _xStep, _yStep);
 		_ctx.closePath();
 
 		//redraw the board grid;
+
+		
+
 		_ctx.beginPath();
 		_ctx.strokeStyle= black;
 		//vertical line
+		var yStep = _yStep;
+		console.log(row);
+		if( row == 0){
+			y += padding;
+			yStep /= 2;
+		}
+		if( row +1 == rows){
+			yStep /= 2;
+		}
 		_ctx.moveTo(x + _xStep/2, y);
-		_ctx.lineTo(x + _xStep/2, y + _yStep);
+		_ctx.lineTo(x + _xStep/2, y + yStep);
+		if(row == 0){
+			y -= padding; 
+		}
+
+
 		//horizontal line
+		var xStep = _xStep;
+		if( col == 0){
+			x += padding;
+			xStep /= 2;
+		}
+		if( col + 1 == cols ){
+			xStep /= 2;
+		}
+
 		_ctx.moveTo(x, y + _yStep/2);
-		_ctx.lineTo(x + _xStep, y + _yStep/2);
+		_ctx.lineTo(x + xStep, y + _yStep/2);
 		_ctx.stroke();
 	}
 
