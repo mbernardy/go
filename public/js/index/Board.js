@@ -27,10 +27,10 @@ function Board(){
 		var black  = "#000000"
 		_$root.on('click', function(e){
 			var x, y;
-			x = e.pageX - padding;
+			x = e.pageX;
 			var col = Math.floor(x / _xStep);
 
-			y = e.pageY - padding;
+			y = e.pageY;
 			var row = Math.floor(y / _yStep);
 
 			var color = plays++ % 2 == 0 ? black : orange;
