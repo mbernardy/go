@@ -9,6 +9,11 @@ function Board(){
 	var rows = 9;
 	var cols = 9; 
 	var padding;
+	var plays = 0;
+	var orange =  "rgba(255, 175, 0, 1.0)";
+	var phantom_orange = "rgba(255, 175, 0, 0.5)"
+	var black  = "rgba(0, 0, 0, 1.0)"
+	var phantom_black = "rgba(0, 0, 0, 0.5)"
 
 	//underlying two dimensional array [col, row] representing board state
 	var board;
@@ -25,43 +30,97 @@ function Board(){
 	}
 
 	function _bindEvents(){
-
-		var plays = 0;
-		var orange = "#FFAE00";
-		var black  = "#000000"
 		_$root.on('click', function(e){
-			var x, y;
-			x = e.pageX;
-			var col = Math.floor(x / _xStep);
+			var position = _getPosition(e.pageX, e.pageY);
+			_drawPiece(position.row, position.column);
+		});
 
-			y = e.pageY;
-			var row = Math.floor(y / _yStep);
-
-			var color = plays % 2 == 0 ? black : orange;
-			//only increment if we actualy drew a piece
-			if(_drawPiece(row, col, color)){
-				plays++;
+		var last;
+		_$root.on('mousemove', function(e){
+			var position = _getPosition(e.pageX, e.pageY);
+			if(last){
+				var last_position = _getPosition(last.pageX, last.pageY);
+				if(position.row != last_position.row || position.column != last_position.column){
+					_clearPhantom(last_position.row, last_position.column);
+					_drawPhantom(position.row, position.column);
+				}
+			}else{
+				_drawPhantom(position.row, position.column);
 			}
-
+			last = e;
 		});
 	}
 
-	function _drawPiece(row, col, color){
+	function _getPosition(x, y){
+		var col = Math.floor(x / _xStep);
+		var row = Math.floor(y / _yStep);
+		return {
+			column : col,
+			row : row
+		}
+	}
+
+	function _getColor(phantom){
+		if(phantom){
+			return plays % 2 == 0 ? phantom_black : phantom_orange;
+		}else{
+			return plays % 2 == 0 ? black : orange;
+		}
+	}
+
+	function _drawPiece(row, col){
 		
 		if(board[col][row]){
-			return false;
+			return;
 		}
 
+		plays++;
 		board[col][row] = true;
 
-		console.log("Trying to draw piece at ", row, col);
 		var x = padding + (col * _xStep);
 		var y = padding + (row * _yStep);
 		_ctx.beginPath();
 		_ctx.arc(x, y, _xStep/2, 0, 2 * Math.PI );
-		_ctx.fillStyle = color;
+		_ctx.fillStyle = _getColor();
 		_ctx.fill();
-		return true;
+	}
+
+	function _clearPhantom(row, col){
+		if(board[col][row]){
+			return;
+		}
+
+		//clear the phantom
+		var x = col * _xStep;
+		var y = row * _yStep;
+		_ctx.beginPath();
+		_ctx.clearRect(x, y, _xStep, _yStep);
+		console.log("Clearing rect", x, y, _xStep, _yStep);
+		_ctx.closePath();
+
+		//redraw the board grid;
+		_ctx.beginPath();
+		_ctx.strokeStyle= black;
+		//vertical line
+		_ctx.moveTo(x + _xStep/2, y);
+		_ctx.lineTo(x + _xStep/2, y + _yStep);
+		//horizontal line
+		_ctx.moveTo(x, y + _yStep/2);
+		_ctx.lineTo(x + _xStep, y + _yStep/2);
+		_ctx.stroke();
+	}
+
+	function _drawPhantom(row, col){
+		if(board[col][row]){
+			return;
+		}
+
+		var x = padding + (col * _xStep);
+		var y = padding + (row * _yStep);
+		_ctx.beginPath();
+		_ctx.arc(x, y, _xStep/2, 0, 2 * Math.PI );
+		_ctx.fillStyle = _getColor(true);
+		_ctx.fill();
 	}
 
 
