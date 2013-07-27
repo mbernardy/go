@@ -73,8 +73,6 @@ function Board(){
 		if(board[col][row]){
 			return;
 		}
-
-		plays++;
 		board[col][row] = true;
 
 		var x = padding + (col * _xStep);
@@ -83,6 +81,7 @@ function Board(){
 		_ctx.arc(x, y, _xStep/2, 0, 2 * Math.PI );
 		_ctx.fillStyle = _getColor();
 		_ctx.fill();
+		plays++;
 	}
 
 	function _clearPhantom(row, col){
