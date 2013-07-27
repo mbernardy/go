@@ -10,14 +10,18 @@ function Board(){
 	var cols = 9; 
 	var padding;
 
+	//underlying two dimensional array [col, row] representing board state
+	var board;
 
 	function _init(){
 		var elem = _$root.get(0);
 		_ctx = elem.getContext('2d');
-
-
-
 		_bindEvents();
+
+		board = new Array(cols);
+		for(var i=0; i < cols; i++){
+			board[i] = new Array(rows);
+		}
 	}
 
 	function _bindEvents(){
@@ -33,22 +37,31 @@ function Board(){
 			y = e.pageY;
 			var row = Math.floor(y / _yStep);
 
-			var color = plays++ % 2 == 0 ? black : orange;
-			_drawPiece(row, col, color);
+			var color = plays % 2 == 0 ? black : orange;
+			//only increment if we actualy drew a piece
+			if(_drawPiece(row, col, color)){
+				plays++;
+			}
 
 		});
 	}
 
 	function _drawPiece(row, col, color){
-		console.log("Trying to draw piece at ", row, col);
+		
+		if(board[col][row]){
+			return false;
+		}
 
+		board[col][row] = true;
+
+		console.log("Trying to draw piece at ", row, col);
 		var x = padding + (col * _xStep);
 		var y = padding + (row * _yStep);
 		_ctx.beginPath();
 		_ctx.arc(x, y, _xStep/2, 0, 2 * Math.PI );
 		_ctx.fillStyle = color;
 		_ctx.fill();
-
+		return true;
 	}
 
 
