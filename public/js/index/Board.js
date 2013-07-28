@@ -15,7 +15,6 @@ function Board(){
 	var black  = "rgba(0, 0, 0, 1.0)"
 	var phantom_black = "rgba(0, 0, 0, 0.5)"
 
-	//underlying two dimensional array [col, row] representing board state
 	var board;
 
 	function _init(){
@@ -23,16 +22,22 @@ function Board(){
 		_ctx = elem.getContext('2d');
 		_bindEvents();
 
-		board = new Array(cols);
-		for(var i=0; i < cols; i++){
-			board[i] = new Array(rows);
-		}
+		board = new BoardController();
+
 	}
 
 	function _bindEvents(){
 		_$root.on('click', function(e){
 			var position = _getPosition(e.pageX, e.pageY);
-			_drawPiece(position.row, position.column);
+			var result = board.play(position.col, position.row);
+			result.added.forEach(function(position){
+				_drawPiece(position[0], position[1]);
+			});
+
+			result.removed.forEach(function(position){
+				_clearPosition(position[0], position[1], true);
+			});
+		
 		});
 
 		var last;
@@ -40,9 +45,9 @@ function Board(){
 			var position = _getPosition(e.pageX, e.pageY);
 			if(last){
 				var last_position = _getPosition(last.pageX, last.pageY);
-				if(position.row != last_position.row || position.column != last_position.column){
-					_clearPhantom(last_position.row, last_position.column);
-					_drawPhantom(position.row, position.column);
+				if(position.row != last_position.row || position.col != last_position.col){
+					_clearPosition(last_position.col, last_position.row);
+					_drawPhantom(position.col, position.row);
 				}
 			}else{
 				_drawPhantom(position.row, position.column);
@@ -55,7 +60,7 @@ function Board(){
 		var col = Math.floor(x / _xStep);
 		var row = Math.floor(y / _yStep);
 		return {
-			column : col,
+			col : col,
 			row : row
 		}
 	}
@@ -68,12 +73,7 @@ function Board(){
 		}
 	}
 
-	function _drawPiece(row, col){
-		
-		if(board[col][row]){
-			return;
-		}
-		board[col][row] = true;
+	function _drawPiece(col, row){
 
 		var x = padding + (col * _xStep);
 		var y = padding + (row * _yStep);
@@ -84,21 +84,11 @@ function Board(){
 		plays++;
 	}
 
-	function _clearPhantom(row, col){
-		if(board[col][row]){
-			return;
-		}
 
-		//clear the phantom
+	function _drawGrid(row, col){
+
 		var x = col * _xStep;
 		var y = row * _yStep;
-		_ctx.beginPath();
-		_ctx.clearRect(x, y, _xStep, _yStep);
-		_ctx.closePath();
-
-		//redraw the board grid;
-
-		
 
 		_ctx.beginPath();
 		_ctx.strokeStyle= black;
@@ -134,8 +124,24 @@ function Board(){
 		_ctx.stroke();
 	}
 
-	function _drawPhantom(row, col){
-		if(board[col][row]){
+	function _clearPosition(col, row, remove_occupied){
+		if(!remove_occupied && board.positionOccupied(col, row)){
+			return;
+		}
+
+		//clear the phantom
+		var x = col * _xStep;
+		var y = row * _yStep;
+		_ctx.beginPath();
+		_ctx.clearRect(x, y, _xStep, _yStep);
+		_ctx.closePath();
+
+		//redraw the board grid;
+		_drawGrid(row, col);
+	}
+
+	function _drawPhantom(col, row){
+		if(board.positionOccupied(col, row)){
 			return;
 		}
 
