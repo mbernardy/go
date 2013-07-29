@@ -112,7 +112,7 @@ function BoardController(){
 		_removeLiberties(col, row);
 		state.player_id = player_id;
 
-		if(_isAlive(col, row)){
+		if(_isAlive(col, row, {})){
 			state.occupied = true;
 			var removed = _getDeadStones(col, row);
 			return {
@@ -128,7 +128,8 @@ function BoardController(){
 		}
 	}
 
-	function _isAlive(col, row){
+	function _isAlive(col, row, visited){
+
 		// There are three ways in which a stone is alive
 		// 1. The space has 1 or more liberties
 		// 2. The space has zero liberties but creates liberties by killing opponent's stone(s)
@@ -148,7 +149,12 @@ function BoardController(){
 		var foes = _getNeighbors(col, row, foe_fn);
 		for(var i=0; i < foes.length; i++){
 			var position = foes[i];
-			if(!_isAlive(position[0], position[1])){
+			var key = position[0] + "" + position[1]
+			if(visited[key]){
+				continue;
+			}
+			visited[key] = true;
+			if(!_isAlive(position[0], position[1], visited)){
 				return true;
 			}
 		}
@@ -161,7 +167,12 @@ function BoardController(){
 		var friends = _getNeighbors(col, row, friend_fn);
 		for(var i=0; i < friends.length; i++){
 			var position = friends[i];
-			if(_isAlive(position[0], position[1])){
+			var key = position[0] + "" + position[1]
+			if(visited[key]){
+				continue;
+			}
+			visited[key] = true;
+			if(_isAlive(position[0], position[1], visited)){
 				return true;
 			}
 		}
@@ -237,7 +248,7 @@ function BoardController(){
 		}
 		var foes = _getNeighbors(col, row, foe_fn);
 		foes.forEach(function(position){
-			if(!_isAlive(position[0], position[1])){
+			if(!_isAlive(position[0], position[1], {})){
 				var group = _getGroup(position[0], position[1], {});
 				to_remove = to_remove.concat(group);
 			}
