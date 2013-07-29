@@ -9,11 +9,14 @@ function Board(){
 	var rows = 9;
 	var cols = 9; 
 	var padding;
-	var plays = 0;
 	var orange =  "rgba(255, 175, 0, 1.0)";
 	var phantom_orange = "rgba(255, 175, 0, 0.5)"
 	var black  = "rgba(0, 0, 0, 1.0)"
-	var phantom_black = "rgba(0, 0, 0, 0.5)"
+	var phantom_black = "rgba(0, 0, 0, 0.5)";
+	var max_players = 2;
+	var black_id = 0;
+	var orange_id = 1;
+	var current_player_id = black_id;
 
 	var board;
 
@@ -29,9 +32,10 @@ function Board(){
 	function _bindEvents(){
 		_$root.on('click', function(e){
 			var position = _getPosition(e.pageX, e.pageY);
-			var result = board.play(position.col, position.row);
+			var result = board.play(position.col, position.row, current_player_id);
 			result.added.forEach(function(position){
 				_drawPiece(position[0], position[1]);
+				_advanceControl();
 			});
 
 			result.removed.forEach(function(position){
@@ -56,6 +60,10 @@ function Board(){
 		});
 	}
 
+	function _advanceControl(){
+		current_player_id = (++current_player_id) % max_players;
+	}
+
 	function _getPosition(x, y){
 		var col = Math.floor(x / _xStep);
 		var row = Math.floor(y / _yStep);
@@ -67,9 +75,9 @@ function Board(){
 
 	function _getColor(phantom){
 		if(phantom){
-			return plays % 2 == 0 ? phantom_black : phantom_orange;
+			return current_player_id == black_id ? phantom_black : phantom_orange;
 		}else{
-			return plays % 2 == 0 ? black : orange;
+			return current_player_id == black_id ? black : orange;
 		}
 	}
 
@@ -81,7 +89,6 @@ function Board(){
 		_ctx.arc(x, y, _xStep/2, 0, 2 * Math.PI );
 		_ctx.fillStyle = _getColor();
 		_ctx.fill();
-		plays++;
 	}
 
 

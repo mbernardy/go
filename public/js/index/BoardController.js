@@ -108,39 +108,69 @@ function BoardController(){
 			return NO_PLAY
 		}
 
-		if(state.liberties == 0){
-			return NO_PLAY
-		}
-
-		state.occupied = true;
-
+		//play the stone and see if it lives;
 		_removeLiberties(col, row);
+		state.player_id = player_id;
 
-
-		var removed = _resolveLiberties();
-		return {
-			added : [[col, row]],
-			removed : removed
+		if(_isAlive(col, row)){
+			state.occupied = true;
+			var removed = _getDeadStones(col, row);
+			return {
+				added : [[col, row]],
+				removed : removed
+			}
+		}else{
+			//remove the stone
+			_addLiberties(col, row);
+			state.occupied = false;
+			state.player_id = null;
+			return NO_PLAY;
 		}
-
 	}
 
 	function _isAlive(col, row){
+		// There are three ways in which a stone is alive
+		// 1. The space has 1 or more liberties
+		// 2. The space has zero liberties but creates liberties by killing opponent's stone(s)
+		// 3. The space her zero liberties but connects to a friendly group that has one or more
+
 		var state = _getState(col, row);
+		// 1.
 		if(state.liberties > 0){
 			return true;
 		}
-		_getFriendlyNeighbors(col, row).forEach(function(position){
+
+		// 2.
+		function foe_fn(col2, row2){
+			var state2 = _getState(col2, row2);
+			return state2.occupied && state2.player_id != state.player_id;
+		}
+		var foes = _getNeighbors(col, row, foe_fn);
+		for(var i=0; i < foes.length; i++){
+			var position = foes[i];
+			if(!_isAlive(position[0], position[1])){
+				return true;
+			}
+		}
+
+		// 3.
+		function friend_fn(col2, row2){
+			var state2 = _getState(col2, row2);
+			return state2.occupied && state2.player_id == state.player_id;
+		}
+		var friends = _getNeighbors(col, row, friend_fn);
+		for(var i=0; i < friends.length; i++){
+			var position = friends[i];
 			if(_isAlive(position[0], position[1])){
 				return true;
 			}
-		})
+		}
 
 		return false;
 
 	}
 
-	function _getFriendlyNeighbors(col, row){
+	function _getNeighbors(col, row, filter_fn){
 
 		var state = _getState(col, row);
 		var player = state.player_id;
@@ -148,25 +178,25 @@ function BoardController(){
 
 		//top
 		if(row - 1 >=0){
-			if(_getState(col, row -1).player_id == player){
+			if(filter_fn(col, row -1)){
 				neighbors.push([col, row-1]);
 			}
 		}
 		//right
 		if(col + 1 < col_count){
-			if(_getState(col +1, row).player_id == player){
+			if(filter_fn(col+1, row)){
 				neighbors.push([col+1, row]);
 			}
 		}
 		//bottom
 		if(row + 1 < row_count){
-			if(_getState(col, row + 1).player_id == player){
+			if(filter_fn(col, row+1)){
 				neighbors.push([col, row+1]);
 			}
 		}
 		//left
 		if(col -1 >=0 ){
-			if(_getState(col-1, row).player_id == player){
+			if(filter_fn(col-1, row)){
 				neighbors.push([col-1, row]);
 			}
 		}
@@ -174,16 +204,46 @@ function BoardController(){
 		return neighbors;
 	}
 
-	function _resolveLiberties(){
-		var to_remove = [];
-		for(var col = 0; col < col_count; col++){
-			for(var row =0; row < row_count; row++){
-				var state = _getState(col, row);
-				if(state.liberties == 0){
-					to_remove.push([col, row]);
-				}
-			}
+
+	//returns all stones part of this group
+	function _getGroup(col, row, visited){
+		if(visited[ col + "" + row]){
+			return [];
 		}
+		visited[col + "" + row] = true;
+
+		var result = [[col, row]];
+		var state = _getState(col, row);
+		function friend_fn(col2, row2){
+			var state2 = _getState(col2, row2);
+			return state2.occupied && state2.player_id == state.player_id;
+		}
+		var friends = _getNeighbors(col, row, friend_fn);
+		for(var i=0; i < friends.length; i++){
+			var position = friends[i];
+			result = result.concat(_getGroup(position[0], position[1], visited));
+		}
+
+		return result;
+	}
+
+	function _getDeadStones(col, row){
+		var to_remove = [];
+		var state = _getState(col, row);
+
+		function foe_fn(col2, row2){
+			var state2 = _getState(col2, row2);
+			return state2.occupied && state2.player_id != state.player_id;
+		}
+		var foes = _getNeighbors(col, row, foe_fn);
+		foes.forEach(function(position){
+			if(!_isAlive(position[0], position[1])){
+				var group = _getGroup(position[0], position[1], {});
+				to_remove = to_remove.concat(group);
+			}
+		});
+
+
 		return to_remove;
 	}
 
