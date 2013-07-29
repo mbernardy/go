@@ -125,6 +125,55 @@ function BoardController(){
 
 	}
 
+	function _isAlive(col, row){
+		var state = _getState(col, row);
+		if(state.liberties > 0){
+			return true;
+		}
+		_getFriendlyNeighbors(col, row).forEach(function(position){
+			if(_isAlive(position[0], position[1])){
+				return true;
+			}
+		})
+
+		return false;
+
+	}
+
+	function _getFriendlyNeighbors(col, row){
+
+		var state = _getState(col, row);
+		var player = state.player_id;
+		var neighbors = [];
+
+		//top
+		if(row - 1 >=0){
+			if(_getState(col, row -1).player_id == player){
+				neighbors.push([col, row-1]);
+			}
+		}
+		//right
+		if(col + 1 < col_count){
+			if(_getState(col +1, row).player_id == player){
+				neighbors.push([col+1, row]);
+			}
+		}
+		//bottom
+		if(row + 1 < row_count){
+			if(_getState(col, row + 1).player_id == player){
+				neighbors.push([col, row+1]);
+			}
+		}
+		//left
+		if(col -1 >=0 ){
+			if(_getState(col-1, row).player_id == player){
+				neighbors.push([col-1, row]);
+			}
+		}
+
+		return neighbors;
+	}
+
 	function _resolveLiberties(){
 		var to_remove = [];
 		for(var col = 0; col < col_count; col++){
