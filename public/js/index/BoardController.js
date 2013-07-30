@@ -100,6 +100,13 @@ function BoardController(){
 		}
 	}
 
+	function _removeStone(col, row){
+		var state = _getState(col, row);
+		state.occupied = false;
+		state.player_id= false;
+		_addLiberties(col, row);
+	}
+
 
 	this.play = function play(col, row, player_id){
 
@@ -112,34 +119,7 @@ function BoardController(){
 		_removeLiberties(col, row);
 		state.player_id = player_id;
 
-		if(_isAlive(col, row, {})){
-			state.occupied = true;
-			var removed = _getDeadStones(col, row);
-			return {
-				added : [[col, row]],
-				removed : removed
-			}
-		}else{
-			//remove the stone
-			_addLiberties(col, row);
-			state.occupied = false;
-			state.player_id = null;
-			return NO_PLAY;
-		}
-	}
 
-	function _isAlive(col, row, visited){
-
-		// There are three ways in which a stone is alive
-		// 1. The space has 1 or more liberties
-		// 2. The space has zero liberties but creates liberties by killing opponent's stone(s)
-		// 3. The space her zero liberties but connects to a friendly group that has one or more
-
-		var state = _getState(col, row);
-		// 1.
-		if(state.liberties > 0){
-			return true;
-		}
 
 		// 2.
 		function foe_fn(col2, row2){
@@ -159,7 +139,35 @@ function BoardController(){
 			}
 		}
 
-		// 3.
+		if(_isAlive(col, row, {})){
+			state.occupied = true;
+			var removed = _getDeadStones(col, row);
+			removed.forEach(function(position){
+				_removeStone(position[0], position[1]);
+			})
+			return {
+				added : [[col, row]],
+				removed : removed
+			}
+		}else{
+			_removeStone(col, row);
+			return NO_PLAY;
+		}
+	}
+
+	function _isAlive(col, row, visited){
+
+		// There are two ways in which a stone is alive
+		// 1. The space has 1 or more liberties
+		// 2. The space her zero liberties but connects to a friendly group that has one or more
+
+		var state = _getState(col, row);
+		// 1.
+		if(state.liberties > 0){
+			return true;
+		}
+
+		// 2.
 		function friend_fn(col2, row2){
 			var state2 = _getState(col2, row2);
 			return state2.occupied && state2.player_id == state.player_id;
