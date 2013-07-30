@@ -1,0 +1,3 @@
+[submodule "tempo"]
+	path = tempo
+	url = git@github.com:joijs/tempo.git
