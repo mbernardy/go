@@ -107,6 +107,13 @@ function BoardController(){
 		_addLiberties(col, row);
 	}
 
+	function _addStone(col, row, player_id){
+		var state = _getState(col, row);
+		state.occupied = true;
+		state.player_id = player_id;
+		_removeLiberties(col, row);
+	}
+
 
 	this.play = function play(col, row, player_id){
 
@@ -115,39 +122,45 @@ function BoardController(){
 			return NO_PLAY
 		}
 
-		//play the stone and see if it lives;
-		_removeLiberties(col, row);
 		state.player_id = player_id;
 
-
-
-		// 2.
+		//see if this stone kills any opponent stones near it
 		function foe_fn(col2, row2){
 			var state2 = _getState(col2, row2);
 			return state2.occupied && state2.player_id != state.player_id;
 		}
 		var foes = _getNeighbors(col, row, foe_fn);
+		var dead_stones = [];
 		for(var i=0; i < foes.length; i++){
 			var position = foes[i];
-			var key = position[0] + "" + position[1]
-			if(visited[key]){
-				continue;
-			}
-			visited[key] = true;
-			if(!_isAlive(position[0], position[1], visited)){
-				return true;
+			var group = _getGroup(position[0], position[1], {}, {});
+			if(group.liberties.length == 1){
+				var liberty = group.liberties[0];
+				if (liberty[0] == col && liberty[1] == row){
+					dead_stones = dead_stones.concat(group.stones);
+				}
 			}
 		}
 
-		if(_isAlive(col, row, {})){
-			state.occupied = true;
-			var removed = _getDeadStones(col, row);
-			removed.forEach(function(position){
+		if(dead_stones.length > 0){
+			_addStone(col, row, player_id);
+			for(var i=0; i< dead_stones.length; i++){
+				var position = dead_stones[i];
 				_removeStone(position[0], position[1]);
-			})
+			}
 			return {
 				added : [[col, row]],
-				removed : removed
+				removed : dead_stones
+			}
+		}
+
+
+		//if not, see if its alive by other means
+		if(_isAlive(col, row, {})){
+			_addStone(col, row, player_id);
+			return {
+				added : [[col, row]],
+				removed : []
 			}
 		}else{
 			_removeStone(col, row);
@@ -159,7 +172,7 @@ function BoardController(){
 
 		// There are two ways in which a stone is alive
 		// 1. The space has 1 or more liberties
-		// 2. The space her zero liberties but connects to a friendly group that has one or more
+		// 2. The space has zero liberties but connects to a friendly group that has one or more
 
 		var state = _getState(col, row);
 		// 1.
@@ -223,48 +236,64 @@ function BoardController(){
 		return neighbors;
 	}
 
-
-	//returns all stones part of this group
-	function _getGroup(col, row, visited){
-		if(visited[ col + "" + row]){
-			return [];
-		}
-		visited[col + "" + row] = true;
-
-		var result = [[col, row]];
+	function _getFriendlyNeighbors(col, row){
 		var state = _getState(col, row);
 		function friend_fn(col2, row2){
 			var state2 = _getState(col2, row2);
 			return state2.occupied && state2.player_id == state.player_id;
 		}
-		var friends = _getNeighbors(col, row, friend_fn);
-		for(var i=0; i < friends.length; i++){
-			var position = friends[i];
-			result = result.concat(_getGroup(position[0], position[1], visited));
-		}
-
-		return result;
+		return _getNeighbors(col, row, friend_fn);
 	}
 
-	function _getDeadStones(col, row){
-		var to_remove = [];
-		var state = _getState(col, row);
-
-		function foe_fn(col2, row2){
-			var state2 = _getState(col2, row2);
-			return state2.occupied && state2.player_id != state.player_id;
+	function _getLiberties(col, row){
+		var empty_fn = function(col, row){
+			return !_getState(col, row).occupied;
 		}
-		var foes = _getNeighbors(col, row, foe_fn);
-		foes.forEach(function(position){
-			if(!_isAlive(position[0], position[1], {})){
-				var group = _getGroup(position[0], position[1], {});
-				to_remove = to_remove.concat(group);
+		return _getNeighbors(col, row, empty_fn);
+	}
+
+	function _getGroup(col, row, visited_stones, visited_liberties){
+
+		var stones = [];
+		var liberties = [];
+
+		//update data for this position
+
+		_getLiberties(col, row).forEach(function(position){
+			var key = position[0] + "," + position[1];
+			if(!visited_liberties[key]){
+				visited_liberties[key] = true;
+				liberties.push(position);
 			}
 		});
 
 
-		return to_remove;
+		var key = col + "," + row;
+		stones.push([col, row]);
+		visited_stones[key] = true;
+
+
+		//recurse 
+		var friends = _getFriendlyNeighbors(col, row);
+		for(var i=0; i < friends.length; i++){
+			var position = friends[i];
+			var key = position[0] + "," + position[1];
+			if(visited_stones[key]){
+				continue;
+			}
+			var result = _getGroup(position[0], position[1], visited_stones, visited_liberties);
+			stones = stones.concat(result.stones);
+			liberties = liberties.concat(result.liberties);
+
+		}
+
+		return {
+			stones : stones,
+			liberties : liberties
+		}
+
 	}
+
 
 	_init();
 }
